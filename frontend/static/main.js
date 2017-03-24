@@ -18,6 +18,7 @@ $(function(){
         $('#logged-out').hide();
         $('#logged-in').show();
       } else {
+        getMovieRecommendations();
         $('#logged-in').hide();
         $('#logged-out').show();
       }
@@ -43,6 +44,17 @@ $(function(){
     ui.start('#firebaseui-auth-container', uiConfig);
   }
   // [END configureFirebaseLoginWidget]
+
+  var backendHostUrl = 'http://backend-dot-cf-mr-service.appspot.com';
+  // var backendHostUrl = 'http://localhost:8081';
+  function getMovieRecommendations() {
+    $.ajax(backendHostUrl + '/movie/api/v1.0/recommendation').then(function(data){
+      $('#recommend-movies').empty();
+      data.forEach(function(movie){
+        $('#recommend-movies').append($('<p>').text(movie.movie_id));
+      });
+    });
+  }
 
   // [START signOutBtn]
   // Sign out a user
