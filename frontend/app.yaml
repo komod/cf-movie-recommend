@@ -7,3 +7,6 @@ handlers:
   static_files: templates/main.html
   upload: templates/main.html
 
+- url: /(.*\.(js|css))$
+  static_files: static/\1
+  upload: static/.*\.(js|css)$
