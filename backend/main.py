@@ -55,6 +55,21 @@ def recommend_movies():
 
     return jsonify(movie_list)
 
+@app.route('/movie/api/v1.0/ratings', methods=['GET'])
+def get_movie_rating():
+    log_info('get movie ratings')
+    user_info = get_user_info()
+    if not user_info['email']:
+        return 'Forbidden', 403
+
+    ratings = []
+    for i in user_rating[user_info['index']].nonzero()[0]:
+        ratings.append({
+          'movie_id': i,
+          'rating': user_rating.item(user_info['index'], i)
+        })
+    return jsonify(ratings)
+
 @app.route('/movie/api/v1.0/ratings/<int:movie_id>', methods=['PUT'])
 def rate_movie(movie_id):
     log_info('rate movie')

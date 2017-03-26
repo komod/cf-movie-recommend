@@ -22,6 +22,7 @@ $(function(){
 
         user.getToken().then(function(idToken) {
           userIdToken = idToken;
+          getRatedMovie();
           getMovieRecommendations();
 
           $('#user').text(welcomeName);
@@ -84,6 +85,30 @@ $(function(){
     });
   }
 
+  function getRatedMovie() {
+    $.ajax(backendHostUrl + '/movie/api/v1.0/ratings', {
+      contentType: 'application/json',
+      headers: {
+        'Authorization': 'Bearer ' + userIdToken
+      },
+    }).then(function(data){
+      $('#rated-movies').empty();
+      data.forEach(function(movie){
+        m = $('<div>').attr('id', 'movie-' + movie.movie_id).text(movie.movie_id).appendTo($('#rated-movies'));
+        if (userIdToken != null) {
+          e = $('<select>').append($('<option>').text('None').val(0));
+          for(var i = 1; i <=5; ++i)
+            e.append($('<option>').text(i))
+          e.val(movie.rating);
+          e.change(function(event) {
+            rateMovie(this.parentNode.id.split('movie-')[1], this.value);
+          });
+          m.append(e);
+        }
+      });
+    });
+  }
+
   function rateMovie(movie_id, rating_str) {
     if (isNaN(movie_id) || parseInt(movie_id) < 0)
       return;
@@ -98,6 +123,7 @@ $(function(){
         'rating': rating
       })
     }).then(function(data){
+      getRatedMovie();
       getMovieRecommendations();
     });
   }
