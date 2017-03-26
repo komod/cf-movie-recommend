@@ -15,6 +15,7 @@ import numpy as np
 from sklearn.metrics.pairwise import pairwise_distances
 
 RATING_KIND = 'Rating'
+MOVIE_KIND = 'Movie'
 HTTP_REQUEST = google.auth.transport.requests.Request()
 
 app = Flask(__name__)
@@ -25,6 +26,7 @@ general_recommendation = []
 user_rating = None
 user_rating_split_size = 0
 user_prediction = None
+movie_info = {}
 
 @app.route('/')
 def hello():
@@ -91,6 +93,23 @@ def rate_movie(movie_id):
     return jsonify({
         'movie_id': movie_id,
         'rating': rating
+        })
+
+@app.route('/movie/api/v1.0/info/<string:movie_id>', methods=['GET'])
+def get_movie_info(movie_id):
+    info = movie_info.get(movie_id, {})
+    if not info:
+        entity = retry_get_entity(client.key(MOVIE_KIND, movie_id))
+        if entity is None:
+            return 'Not avialable', 500
+        info = movie_info[movie_id] = {
+            'title': entity.get('title', ''),
+            'imdb_url': entity.get('imdb_url', '')
+        }
+    return jsonify({
+        'movie_id': int(movie_id),
+        'title': info['title'],
+        'imdb_url': info['imdb_url']
         })
 
 @app.errorhandler(500)

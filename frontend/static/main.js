@@ -70,17 +70,8 @@ $(function(){
     }).then(function(data){
       $('#recommend-movies').empty();
       data.forEach(function(movie){
-        m = $('<div>').attr('id', 'movie-' + movie.movie_id).text(movie.movie_id).appendTo($('#recommend-movies'));
-        if (userIdToken != null) {
-          e = $('<select>').append($('<option>').text('None').val(0));
-          for(var i = 1; i <=5; ++i)
-            e.append($('<option>').text(i))
-          e.val(0);
-          e.change(function(event) {
-            rateMovie(this.parentNode.id.split('movie-')[1], this.value);
-          });
-          m.append(e);
-        }
+        $('<div>').attr('id', 'movie-' + movie.movie_id).appendTo($('#recommend-movies'));
+        setupMovieItem(movie);
       });
     });
   }
@@ -94,17 +85,8 @@ $(function(){
     }).then(function(data){
       $('#rated-movies').empty();
       data.forEach(function(movie){
-        m = $('<div>').attr('id', 'movie-' + movie.movie_id).text(movie.movie_id).appendTo($('#rated-movies'));
-        if (userIdToken != null) {
-          e = $('<select>').append($('<option>').text('None').val(0));
-          for(var i = 1; i <=5; ++i)
-            e.append($('<option>').text(i))
-          e.val(movie.rating);
-          e.change(function(event) {
-            rateMovie(this.parentNode.id.split('movie-')[1], this.value);
-          });
-          m.append(e);
-        }
+        $('<div>').attr('id', 'movie-' + movie.movie_id).appendTo($('#rated-movies'));
+        setupMovieItem(movie);
       });
     });
   }
@@ -128,6 +110,22 @@ $(function(){
     });
   }
 
+  function setupMovieItem(movie) {
+    $.ajax(backendHostUrl + '/movie/api/v1.0/info/' + movie.movie_id).then(function(movie_info){
+      $('#movie-' + movie_info.movie_id).append($('<a>').text(movie_info.title).attr('href', movie_info.imdb_url).attr('target', '_blank'))
+      if (userIdToken != null) {
+        e = $('<select>').append($('<option>').text('None').val(0));
+        for(var i = 1; i <=5; ++i)
+          e.append($('<option>').text(i))
+        if (movie.rating > 0)
+          e.val(movie.rating);
+        e.change(function(event) {
+          rateMovie(this.parentNode.id.split('movie-')[1], this.value);
+        });
+        $('#movie-' + movie_info.movie_id).append(e);
+      }
+    });
+  }
   // [START signOutBtn]
   // Sign out a user
   var signOutBtn =$('#sign-out');
