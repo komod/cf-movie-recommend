@@ -1,0 +1,8 @@
+Flask==0.12
+gunicorn==19.7.1
+flask-cors==3.0.2
+numpy==1.12.1
+google-auth==0.8.0
+google-cloud-datastore
+requests==2.13.0
+scikit-learn[alldeps]==0.18.1
