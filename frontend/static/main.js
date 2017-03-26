@@ -69,8 +69,36 @@ $(function(){
     }).then(function(data){
       $('#recommend-movies').empty();
       data.forEach(function(movie){
-        $('#recommend-movies').append($('<p>').text(movie.movie_id));
+        m = $('<div>').attr('id', 'movie-' + movie.movie_id).text(movie.movie_id).appendTo($('#recommend-movies'));
+        if (userIdToken != null) {
+          e = $('<select>').append($('<option>').text('None').val(0));
+          for(var i = 1; i <=5; ++i)
+            e.append($('<option>').text(i))
+          e.val(0);
+          e.change(function(event) {
+            rateMovie(this.parentNode.id.split('movie-')[1], this.value);
+          });
+          m.append(e);
+        }
       });
+    });
+  }
+
+  function rateMovie(movie_id, rating_str) {
+    if (isNaN(movie_id) || parseInt(movie_id) < 0)
+      return;
+    rating = parseInt(rating_str, 10);
+    $.ajax(backendHostUrl + '/movie/api/v1.0/ratings/' + movie_id, {
+      type: 'PUT',
+      contentType: 'application/json',
+      headers: {
+        'Authorization': 'Bearer ' + userIdToken
+      },
+      data: JSON.stringify({
+        'rating': rating
+      })
+    }).then(function(data){
+      getMovieRecommendations();
     });
   }
 

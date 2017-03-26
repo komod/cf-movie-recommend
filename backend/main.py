@@ -55,6 +55,29 @@ def recommend_movies():
 
     return jsonify(movie_list)
 
+@app.route('/movie/api/v1.0/ratings/<int:movie_id>', methods=['PUT'])
+def rate_movie(movie_id):
+    log_info('rate movie')
+    user_info = get_user_info()
+    if not user_info['email']:
+        return 'Forbidden', 403
+    rating = -1
+    if request.json:
+        rating = request.json.get('rating', -1)
+    if user_info['index'] < 0 or user_info['index'] >= user_rating.shape[0] \
+        or movie_id < 0 or movie_id >= user_rating.shape[1] \
+        or rating < 0 or rating > 5:
+        return 'Invalid Parameter', 500
+    user_rating[user_info['index']][movie_id] = rating
+    predict_all()
+    entity = setup_rating_entity(user_info['index'])
+    client.put(entity)
+    average_rating(movie_id)
+    return jsonify({
+        'movie_id': movie_id,
+        'rating': rating
+        })
+
 @app.errorhandler(500)
 def server_error(e):
     logging.exception('An error occurred during a request.')
@@ -92,10 +115,7 @@ def load_data():
     global movie_ratings
     movie_ratings = [[0.0, 0, i] for i in xrange(user_rating.shape[1])]
     for movie_id in xrange(len(movie_ratings)):
-        ratings = user_rating[:, movie_id:movie_id + 1]
-        ratings = ratings[ratings.nonzero()]
-        movie_ratings[movie_id][0] = ratings.mean()
-        movie_ratings[movie_id][1] = ratings.shape[0]
+        average_rating(movie_id)
 
     global general_recommendation
     general_recommendation = sorted(movie_ratings, reverse=True)
@@ -109,6 +129,13 @@ def retry_get_entity(key):
     except ServiceUnavailable:
         entity = client.get(key=key)
     return entity
+
+def average_rating(movie_id):
+    ratings = user_rating[:, movie_id:movie_id + 1]
+    ratings = ratings[ratings.nonzero()]
+    global movie_ratings
+    movie_ratings[movie_id][0] = ratings.mean()
+    movie_ratings[movie_id][1] = ratings.shape[0]
 
 def predict_all():
     user_similarity = pairwise_distances(user_rating, metric='cosine')
@@ -141,17 +168,7 @@ def get_user_info():
             index = user_rating.shape[0]
             user_rating = np.append(user_rating, np.zeros((1, user_rating.shape[1]), dtype='uint8'), axis = 0)
 
-            data_set_index = index / user_rating_split_size
-            key = client.key(RATING_KIND, str(data_set_index))
-            entity = retry_get_entity(key)
-            if entity is None:
-                entity = datastore.Entity(key=key, exclude_from_indexes=['data_str'])
-            sub_arr = user_rating[data_set_index * user_rating_split_size : user_rating.shape[0]]
-            entity['rows'] = sub_arr.shape[0]
-            entity['cols'] = sub_arr.shape[1]
-            entity['dtype'] = str(sub_arr.dtype)
-            entity['data_str'] = sub_arr.tostring()
-
+            entity = setup_rating_entity(index)
             user_entity = datastore.Entity(key=client.key('User', email))
             user_entity['user_index'] = index
             try:
@@ -166,6 +183,20 @@ def get_user_info():
         'email': email,
         'index': index
         }
+
+def setup_rating_entity(user_index):
+    data_set_index = user_index / user_rating_split_size
+    key = client.key(RATING_KIND, str(data_set_index))
+    entity = client.get(key=key)
+    if entity is None:
+        entity = datastore.Entity(key=key, exclude_from_indexes=['data_str'])
+    save_start_index = data_set_index * user_rating_split_size
+    sub_arr = user_rating[save_start_index : save_start_index + user_rating_split_size]
+    entity['rows'] = sub_arr.shape[0]
+    entity['cols'] = sub_arr.shape[1]
+    entity['dtype'] = str(sub_arr.dtype)
+    entity['data_str'] = sub_arr.tostring()
+    return entity
 
 load_data()
 if __name__ == '__main__':
