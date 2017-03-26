@@ -43,6 +43,8 @@ def recommend_movies():
             movie_list.append({
                 'movie_id': m[2]
                 })        
+            if len(movie_list) >= 20:
+                break
     elif user_info['index'] < user_rating.shape[0]:
         movies = []
         for i in xrange(user_rating.shape[1]):
@@ -54,6 +56,8 @@ def recommend_movies():
             movie_list.append({
                 'movie_id': m[1]
                 })
+            if len(movie_list) >= 20:
+                break
 
     return jsonify(movie_list)
 
