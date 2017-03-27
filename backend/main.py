@@ -14,6 +14,10 @@ import google.oauth2.id_token
 import numpy as np
 from sklearn.metrics.pairwise import pairwise_distances
 
+# local development
+# import pdb
+# import pandas
+
 RATING_KIND = 'Rating'
 MOVIE_KIND = 'Movie'
 HTTP_REQUEST = google.auth.transport.requests.Request()
@@ -148,6 +152,10 @@ def load_data():
     if user_rating is not None:
         log_info('Number of users = ' + str(user_rating.shape[0]) + ' | Number of movies = ' + str(user_rating.shape[1]))
 
+def initialize():
+    load_data()
+    # load_local_data()
+  
     predict_all()
     
     global movie_ratings
@@ -236,6 +244,38 @@ def setup_rating_entity(user_index):
     entity['data_str'] = sub_arr.tostring()
     return entity
 
-load_data()
+def load_local_data():
+    log_info('load local data')
+
+    global user_rating_split_size
+    user_rating_split_size = 623
+
+    header = ['user_id', 'item_id', 'rating', 'timestamp']
+    rating_data = pandas.read_csv('r.data', sep='\t', names=header)
+
+    n_users = rating_data.user_id.unique().shape[0]
+    n_items = rating_data.item_id.unique().shape[0]
+    print 'Number of users = ' + str(n_users) + ' | Number of movies = ' + str(n_items)
+
+    global user_rating
+    user_rating = np.zeros((n_users, n_items), dtype='uint8')
+    for line in rating_data.itertuples():
+        user_rating[line[1] - 1, line[2] - 1] = line[3]
+
+    global movie_info
+    print 'load movie info'
+    f = open('u.item')
+    while True:
+        s = f.readline()
+        if not s:
+            break;
+        item_info = s.split('|', 5)
+        movie_info[str(int(item_info[0]) - 1)] = {
+            'title': item_info[1],
+            'imdb_url': item_info[4],
+            'genre': item_info[5]
+            }
+
+initialize()
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8081, debug=False)
