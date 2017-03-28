@@ -62,8 +62,13 @@ $(function(){
   // var backendHostUrl = 'http://localhost:8081';
 
   var MOVIE_ID_PREFIX = 'movie-';
+  var isGettingRecommendation = false;
 
   function getMovieRecommendations() {
+    if (isGettingRecommendation) {
+      return;
+    }
+    isGettingRecommendation = true;
     $.ajax(backendHostUrl + '/movie/api/v1.0/recommendation', {
       /* Set header for the XMLHttpRequest to get data from the web server
       associated with userIdToken */
@@ -72,10 +77,17 @@ $(function(){
       }
     }).then(function(data){
       $('#recommend-movies').empty();
+      var defs = [];
       data.forEach(function(movie){
-        $('<div>').attr('id', MOVIE_ID_PREFIX + movie.movie_id).appendTo($('#recommend-movies'));
-        setupMovieItem(movie);
+        id = MOVIE_ID_PREFIX + movie.movie_id;
+        if ($('#' + id).length == 0) {
+          $('<div>').attr('id', id).appendTo($('#recommend-movies'));
+          defs.push(setupMovieItem(movie));
+        }
       });
+      return $.when.apply($, defs);
+    }).always(function() {
+      isGettingRecommendation = false;
     });
   }
 
@@ -114,7 +126,7 @@ $(function(){
   }
 
   function setupMovieItem(movie) {
-    $.ajax(backendHostUrl + '/movie/api/v1.0/info/' + movie.movie_id).then(function(movie_info){
+    return $.ajax(backendHostUrl + '/movie/api/v1.0/info/' + movie.movie_id).then(function(movie_info){
       $('#' + MOVIE_ID_PREFIX + movie_info.movie_id).append($('<a>').text(movie_info.title).attr('href', movie_info.imdb_url).attr('target', '_blank'))
       if (userIdToken != null) {
         e = $('<select>').append($('<option>').text('None').val(0));
