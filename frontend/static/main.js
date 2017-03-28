@@ -60,6 +60,9 @@ $(function(){
 
   var backendHostUrl = 'http://backend-dot-cf-mr-service.appspot.com';
   // var backendHostUrl = 'http://localhost:8081';
+
+  var MOVIE_ID_PREFIX = 'movie-';
+
   function getMovieRecommendations() {
     $.ajax(backendHostUrl + '/movie/api/v1.0/recommendation', {
       /* Set header for the XMLHttpRequest to get data from the web server
@@ -70,7 +73,7 @@ $(function(){
     }).then(function(data){
       $('#recommend-movies').empty();
       data.forEach(function(movie){
-        $('<div>').attr('id', 'movie-' + movie.movie_id).appendTo($('#recommend-movies'));
+        $('<div>').attr('id', MOVIE_ID_PREFIX + movie.movie_id).appendTo($('#recommend-movies'));
         setupMovieItem(movie);
       });
     });
@@ -85,7 +88,7 @@ $(function(){
     }).then(function(data){
       $('#rated-movies').empty();
       data.forEach(function(movie){
-        $('<div>').attr('id', 'movie-' + movie.movie_id).appendTo($('#rated-movies'));
+        $('<div>').attr('id', MOVIE_ID_PREFIX + movie.movie_id).appendTo($('#rated-movies'));
         setupMovieItem(movie);
       });
     });
@@ -112,7 +115,7 @@ $(function(){
 
   function setupMovieItem(movie) {
     $.ajax(backendHostUrl + '/movie/api/v1.0/info/' + movie.movie_id).then(function(movie_info){
-      $('#movie-' + movie_info.movie_id).append($('<a>').text(movie_info.title).attr('href', movie_info.imdb_url).attr('target', '_blank'))
+      $('#' + MOVIE_ID_PREFIX + movie_info.movie_id).append($('<a>').text(movie_info.title).attr('href', movie_info.imdb_url).attr('target', '_blank'))
       if (userIdToken != null) {
         e = $('<select>').append($('<option>').text('None').val(0));
         for(var i = 1; i <=5; ++i)
@@ -120,9 +123,9 @@ $(function(){
         if (movie.rating > 0)
           e.val(movie.rating);
         e.change(function(event) {
-          rateMovie(this.parentNode.id.split('movie-')[1], this.value);
+          rateMovie(this.parentNode.id.split(MOVIE_ID_PREFIX)[1], this.value);
         });
-        $('#movie-' + movie_info.movie_id).append(e);
+        $('#' + MOVIE_ID_PREFIX + movie_info.movie_id).append(e);
       }
     });
   }
