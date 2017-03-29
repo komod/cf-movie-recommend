@@ -39,7 +39,7 @@ def save_to_store():
 
     entity_list = []
     print 'config split size = ' + str(split_size)
-    config_key = key=client.key('Config', 'v1.0')
+    config_key = client.key('Config', 'v1.0')
     entity = client.get(key=config_key)
     if entity is None:
         entity = datastore.Entity(key=config_key, exclude_from_indexes=['user_rating_split_size'])
