@@ -74,27 +74,7 @@ def save_to_store():
         client.put_multi(entity_list)
         client.delete_multi(user_keys)
 
-    entity_list = []
-    print 'load movie info'
-    f = open('u.item')
-    while True:
-        s = f.readline()
-        if not s:
-            break;
-        item_info = s.split('|')
-        entity = datastore.Entity(key=client.key(MOVIE_KIND, str(int(item_info[0]) - 1)),
-            exclude_from_indexes=['title', 'imdb_url'])
-        entity.update({
-            'title': item_info[1],
-            'imdb_url': item_info[4]
-            })
-        entity_list.append(entity)
-        if (len(entity_list) >= 400):
-            print 'put movie info'
-            client.put_multi(entity_list)
-            entity_list = []
-
-    print 'initialization transaction'
+    print 'initialization finished'
 
 
 if __name__ == '__main__':

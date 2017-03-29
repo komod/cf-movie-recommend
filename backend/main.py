@@ -36,7 +36,7 @@ movies_to_update = set()
 users_to_update = set()
 rating_data_lock = threading.Lock()
 user_prediction = None
-movie_info = {}
+movie_info = []
 
 @app.route('/')
 def hello():
@@ -116,21 +116,14 @@ def rate_movie(movie_id):
         'rating': rating
         })
 
-@app.route('/movie/api/v1.0/info/<string:movie_id>', methods=['GET'])
+@app.route('/movie/api/v1.0/info/<int:movie_id>', methods=['GET'])
 def get_movie_info(movie_id):
-    info = movie_info.get(movie_id, {})
-    if not info:
-        entity = retry_get_entity(client.key(MOVIE_KIND, movie_id))
-        if entity is None:
-            return 'Not avialable', 500
-        info = movie_info[movie_id] = {
-            'title': entity.get('title', ''),
-            'imdb_url': entity.get('imdb_url', '')
-        }
-    return jsonify({
-        'movie_id': int(movie_id),
-        'title': info['title'],
-        'imdb_url': info['imdb_url']
+    info = movie_info[movie_id]
+    if info:
+      return jsonify({
+        'movie_id': movie_id,
+        'title': info.get('title', ''),
+        'imdb_url': info.get('imdb_url', '')
         })
 
 @app.errorhandler(500)
@@ -165,6 +158,19 @@ def load_data():
 
     if user_rating is not None:
         log_info('Number of users = ' + str(user_rating.shape[0]) + ' | Number of movies = ' + str(user_rating.shape[1]))
+
+    load_movie_info_from_file()
+
+def load_movie_info_from_file():
+    global movie_info
+    with open('u.item', 'r') as f:
+        for line in f:
+            item_info = line[:-1].split('|', 5)
+            movie_info.append({
+                'title': item_info[1],
+                'imdb_url': item_info[4],
+                'genre': item_info[5]
+                })
 
 def initialize():
     load_data()
@@ -323,19 +329,7 @@ def load_local_data():
     for line in rating_data.itertuples():
         user_rating[line[1] - 1, line[2] - 1] = line[3]
 
-    global movie_info
-    print 'load movie info'
-    f = open('u.item')
-    while True:
-        s = f.readline()
-        if not s:
-            break;
-        item_info = s.split('|', 5)
-        movie_info[str(int(item_info[0]) - 1)] = {
-            'title': item_info[1],
-            'imdb_url': item_info[4],
-            'genre': item_info[5]
-            }
+    load_movie_info_from_file()
 
 initialize()
 if __name__ == '__main__':
