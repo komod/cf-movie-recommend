@@ -78,7 +78,7 @@ $(function(){
     }).then(function(data){
       $('#recommend-movies').empty();
       var defs = [];
-      data.forEach(function(movie){
+      data.movie_list.forEach(function(movie){
         id = MOVIE_ID_PREFIX + movie.movie_id;
         if ($('#' + id).length == 0) {
           $('<div>').attr('id', id).appendTo($('#recommend-movies'));

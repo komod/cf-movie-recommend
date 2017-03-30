@@ -63,7 +63,7 @@ def recommend_movies():
             if len(movie_list) >= 20:
                 break
 
-    return jsonify(movie_list)
+    return jsonify({'movie_list': movie_list})
 
 @app.route('/movie/api/v1.0/ratings', methods=['GET'])
 def get_movie_rating():
