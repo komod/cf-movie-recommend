@@ -2,6 +2,7 @@ import logging
 import traceback
 import threading
 import time
+import datetime
 
 # flask
 from flask import Flask, jsonify, request
@@ -36,6 +37,7 @@ movies_to_update = set()
 users_to_update = set()
 rating_data_lock = threading.Lock()
 user_prediction = None
+modeling_time = datetime.datetime.utcnow().isoformat() + 'Z'
 movie_info = []
 all_user_info = {}
 
@@ -73,7 +75,14 @@ def recommend_movies():
             if len(movie_list) >= 20:
                 break
 
-    return jsonify({'movie_list': movie_list})
+    return jsonify({
+        'movie_list': movie_list,
+        'up_to_date_time': modeling_time
+        })
+
+@app.route('/movie/api/v1.0/recommendation/uptodate', methods=['GET'])
+def get_modeling_time():
+    return modeling_time
 
 @app.route('/movie/api/v1.0/ratings', methods=['GET'])
 def get_movie_rating():
@@ -271,6 +280,8 @@ def get_user_info():
                 log_info('exception caught, restore rating data to size = ' + str(user_rating.shape[0]))
             else:
                 predict_all()
+                global modeling_time
+                modeling_time = datetime.datetime.utcnow().isoformat() + 'Z'
     log_info('user ' + str(index) + ' : ' + email)
     return {
         'email': email,
@@ -304,6 +315,9 @@ def daemon_task():
                 predict_all()
                 for i in update_list:
                     average_rating(i)
+                global modeling_time
+                modeling_time = datetime.datetime.utcnow().isoformat() + 'Z'
+   
             rating_data_lock.acquire()
             update_list = sorted(users_to_update)
             users_to_update.clear()

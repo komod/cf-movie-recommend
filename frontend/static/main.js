@@ -63,13 +63,14 @@ $(function(){
 
   var MOVIE_ID_PREFIX = 'movie-';
   var isGettingRecommendation = false;
+  var lastRecommendingTime = 0
 
   function getMovieRecommendations() {
     if (isGettingRecommendation) {
-      return;
+      return $.when();
     }
     isGettingRecommendation = true;
-    $.ajax(backendHostUrl + '/movie/api/v1.0/recommendation', {
+    return $.ajax(backendHostUrl + '/movie/api/v1.0/recommendation', {
       /* Set header for the XMLHttpRequest to get data from the web server
       associated with userIdToken */
       headers: {
@@ -85,10 +86,19 @@ $(function(){
           defs.push(setupMovieItem(movie));
         }
       });
+      lastRecommendingTime = parseServerIsoTime(data.up_to_date_time);
       return $.when.apply($, defs);
     }).always(function() {
       isGettingRecommendation = false;
     });
+  }
+
+  function parseServerIsoTime(s) {
+    if (s.length > 4) {
+      return Date.parse(s.substring(0, s.length - 4) + 'Z');
+    } else {
+      return 0;
+    }
   }
 
   var ratings = {};
@@ -137,7 +147,6 @@ $(function(){
         delete ratings[data.movie_id];
         $('#' + MOVIE_ID_PREFIX + data.movie_id).remove();
       }
-      getMovieRecommendations();
     }, function(data) {
       console.log('rate movie failed');
       if (ratings[movie_id] > 0) {
@@ -185,4 +194,14 @@ $(function(){
   configureFirebaseLogin();
   configureFirebaseLoginWidget();
 
+  function updateMovieRecommendations() {
+    return $.ajax(backendHostUrl + '/movie/api/v1.0/recommendation/uptodate').then(function(time){
+      if (lastRecommendingTime < parseServerIsoTime(time)) {
+        return getMovieRecommendations();
+      }
+    }).always(function() {
+      setTimeout(updateMovieRecommendations, 6000);
+    });
+  }
+  setTimeout(updateMovieRecommendations, 6000);
 });
