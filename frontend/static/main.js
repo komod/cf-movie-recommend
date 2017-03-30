@@ -189,6 +189,7 @@ $(function(){
           }
         }
         $('#' + MOVIE_ID_PREFIX + movie_info.movie_id).append(e).append(
+          $('<div>').text('Score: ' + movie.score)).append(
           $('<div>').text('Rating: ' + movie_info.average_rating + ' / ' + movie_info.rating_count)).append(
           $('<p>').text(genre_string));
       }

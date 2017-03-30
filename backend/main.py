@@ -55,7 +55,8 @@ def recommend_movies():
     if user_info['index'] < 0:
         for m in general_recommendation:
             movie_list.append({
-                'movie_id': m[2]
+                'movie_id': m[2],
+                'score': m[0]
                 })        
             if len(movie_list) >= 20:
                 break
@@ -70,7 +71,8 @@ def recommend_movies():
         movies.sort(reverse=True)        
         for m in movies:
             movie_list.append({
-                'movie_id': m[1]
+                'movie_id': m[1],
+                'score': m[0]
                 })
             if len(movie_list) >= 20:
                 break
