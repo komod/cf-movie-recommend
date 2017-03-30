@@ -232,8 +232,7 @@ def get_user_info():
 
 def setup_rating_entity(user_index):
     data_set_index = user_index / user_rating_split_size
-    key = client.key(RATING_KIND, str(data_set_index))
-    entity = client.get(key=key)
+    entity = retry_get_entity(client.key(RATING_KIND, str(data_set_index)))
     if entity is None:
         entity = datastore.Entity(key=key, exclude_from_indexes=['data_str'])
     save_start_index = data_set_index * user_rating_split_size
