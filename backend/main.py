@@ -37,6 +37,7 @@ users_to_update = set()
 rating_data_lock = threading.Lock()
 user_prediction = None
 movie_info = []
+all_user_info = {}
 
 @app.route('/')
 def hello():
@@ -159,6 +160,13 @@ def load_data():
     if user_rating is not None:
         log_info('Number of users = ' + str(user_rating.shape[0]) + ' | Number of movies = ' + str(user_rating.shape[1]))
 
+    global all_user_info
+    query = client.query(kind='User')
+    for user in query.fetch():
+        user_index = user.get('user_index', -1)
+        if user_index >= 0:
+         all_user_info[user.key.name] = user_index
+
     load_movie_info_from_file()
 
 def load_movie_info_from_file():
@@ -233,10 +241,14 @@ def get_user_info():
     index = -1
     if claims is not None:
         email = claims['email']
-        entity = retry_get_entity(client.key('User', email))
-        if entity is not None:
-            index = entity.get('user_index', -1)
-        elif user_rating_split_size > 0:
+        index = all_user_info.get(email, -1)
+        if index < 0:
+            entity = retry_get_entity(client.key('User', email))
+            if entity is None:
+                entity = datastore.Entity(key=client.key('User', email))
+            else:
+                index = entity.get('user_index', -1)
+        if index < 0 and user_rating_split_size > 0:
             # authorized user without index, add to rating matrix and db
             global user_rating
             rating_data_lock.acquire()
