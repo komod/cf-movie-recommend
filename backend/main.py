@@ -133,7 +133,10 @@ def get_movie_info(movie_id):
       return jsonify({
         'movie_id': movie_id,
         'title': info.get('title', ''),
-        'imdb_url': info.get('imdb_url', '')
+        'imdb_url': info.get('imdb_url', ''),
+        'genre': info.get('genre', ''),
+        'average_rating': movie_ratings[movie_id][0],
+        'rating_count': movie_ratings[movie_id][1]
         })
 
 @app.errorhandler(500)

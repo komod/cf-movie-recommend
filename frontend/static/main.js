@@ -161,6 +161,11 @@ $(function(){
     });
   }
 
+  var genres = ['unknown', 'Action', 'Adventure', 'Animation', 'Children\'s',
+    'Comedy', 'Crime', 'Documentary', 'Drama', 'Fantasy', 'Film-Noir', 'Horror',
+    'Musical', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War', 'Western'
+  ]
+
   function setupMovieItem(movie) {
     return $.ajax(backendHostUrl + '/movie/api/v1.0/info/' + movie.movie_id).then(function(movie_info){
       $('#' + MOVIE_ID_PREFIX + movie_info.movie_id).append($('<a>').text(movie_info.title).attr('href', movie_info.imdb_url).attr('target', '_blank'))
@@ -173,7 +178,19 @@ $(function(){
         e.change(function(event) {
           rateMovie(this.parentNode.id.split(MOVIE_ID_PREFIX)[1], this.value);
         });
-        $('#' + MOVIE_ID_PREFIX + movie_info.movie_id).append(e);
+        genre_string = ''
+        mask = movie_info.genre.split('|')
+        for (var i = 0; i < movie_info.genre.length && i < genres.length; ++i) {
+          if (mask[i] > 0) {
+            if (genre_string.length > 0) {
+              genre_string = genre_string.concat(' ');
+            }
+            genre_string = genre_string.concat(genres[i]);
+          }
+        }
+        $('#' + MOVIE_ID_PREFIX + movie_info.movie_id).append(e).append(
+          $('<div>').text('Rating: ' + movie_info.average_rating + ' / ' + movie_info.rating_count)).append(
+          $('<p>').text(genre_string));
       }
     });
   }
