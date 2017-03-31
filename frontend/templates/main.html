@@ -1,26 +1,55 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
+  <!-- jquery -->
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+  <!-- fireabase -->
   <script src="https://www.gstatic.com/firebasejs/3.2.1/firebase.js"></script>
   <script src="https://www.gstatic.com/firebasejs/3.1.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/3.1.0/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/ui/live/0.5/firebase-ui-auth.js"></script>
   <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/live/0.5/firebase-ui-auth.css">
+
+  <!-- bootstrap -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+  <!-- manual -->
   <script src="/main.js"></script>
+  <link rel="stylesheet" href="/main.css">
   <title>Movie Recommendation</title>
 </head>
 <body>
-  <div id="logged-out">
-    <div id="firebaseui-auth-container"></div>
+  <div class="container-fluid">
+    <div class="row">
+      <div style="text-align: center;"><h2> CF-Based Movie Recommendation </h2></div>
+    </div>
+    <div class="logged-out">
+      <div id="firebaseui-auth-container"></div>
+    </div>
+    <div class="col-md-10 col-md-offset-1">
+      <hr>
+      <div class="row">
+        <div class="logged-in pull-right">
+          <span id="user"></span>
+          <button id="sign-out">Sign out</button> 
+        </div>
+      </div>
+      <hr class="logged-in">
+      <div class='logged-in panel panel-info'>
+        <div class='panel-heading'>
+          <h4> Rated Movies </h4>
+        </div>
+        <div id="rated-movies" class="panel-body"></div>
+      </div>
+      <hr class="logged-in">
+      <div class='panel panel-info'>
+        <div class='panel-heading'>
+          <h4> Recommending Movies </h4>
+        </div>
+        <div id="recommend-movies" class="panel-body"></div>
+      </div>
+    </div>
   </div>
-  <div id="logged-in">
-    <h1>Welcome, <span id="user"></span>!</h1>
-    <button id="sign-out">Sign out</button> 
-    <h2> Rated Movies </h2>
-    <div id="rated-movies"></div>
-  </div>
-  <h2> Recommending Movies </h2>
-  <div id="recommend-movies"></div>
 </body>
 </html>

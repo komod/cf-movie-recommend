@@ -27,13 +27,13 @@ $(function(){
 
           $('#user').text(welcomeName);
         });
-        $('#logged-out').hide();
-        $('#logged-in').show();
+        $('.logged-out').hide();
+        $('.logged-in').show();
       } else {
         userIdToken = null;
         getMovieRecommendations();
-        $('#logged-in').hide();
-        $('#logged-out').show();
+        $('.logged-in').hide();
+        $('.logged-out').show();
       }
     // [END onAuthStateChanged]
 
@@ -80,10 +80,8 @@ $(function(){
       $('#recommend-movies').empty();
       var defs = [];
       data.movie_list.forEach(function(movie){
-        id = MOVIE_ID_PREFIX + movie.movie_id;
-        if ($('#' + id).length == 0) {
-          $('<div>').attr('id', id).appendTo($('#recommend-movies'));
-          defs.push(setupMovieItem(movie));
+        if ($('#' + MOVIE_ID_PREFIX + movie.movie_id).length == 0) {
+          defs.push(addMovieItem(movie, 'recommend-movies'));
         }
       });
       lastRecommendingTime = parseServerIsoTime(data.up_to_date_time);
@@ -114,8 +112,7 @@ $(function(){
       $('#rated-movies').empty();
       data.forEach(function(movie){
         ratings[movie.movie_id] = movie.rating;
-        $('<div>').attr('id', MOVIE_ID_PREFIX + movie.movie_id).appendTo($('#rated-movies'));
-        setupMovieItem(movie);
+        addMovieItem(movie, 'rated-movies');
       });
     });
   }
@@ -166,15 +163,16 @@ $(function(){
     'Musical', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War', 'Western'
   ]
 
-  function setupMovieItem(movie) {
+  function addMovieItem(movie, parent_id) {
+    $('<div>').attr('id', MOVIE_ID_PREFIX + movie.movie_id).addClass('movie-item').appendTo($('#' + parent_id));
     return $.ajax(backendHostUrl + '/movie/api/v1.0/info/' + movie.movie_id).then(function(movie_info){
       a = $('<a>').attr('href', movie_info.imdb_url).attr('target', '_blank');
       if (movie_info.imdb_poster_image_url) {
-        a.append($('<img>').attr('src', movie_info.imdb_poster_image_url));
+        a.append($('<img>').attr('src', movie_info.imdb_poster_image_url).addClass('center-block'));
       } else {
-        a.text(movie_info.title)
+        a.append($('<span>').text(movie_info.title).addClass('poster-like center-block'));
       }
-      $('#' + MOVIE_ID_PREFIX + movie_info.movie_id).append(a)
+      m = $('#' + MOVIE_ID_PREFIX + movie.movie_id).append(a);
       if (userIdToken != null) {
         e = $('<select>').append($('<option>').text('None').val(0));
         for(var i = 1; i <=5; ++i)
@@ -182,8 +180,10 @@ $(function(){
         if (movie.rating > 0)
           e.val(movie.rating);
         e.change(function(event) {
-          rateMovie(this.parentNode.id.split(MOVIE_ID_PREFIX)[1], this.value);
+          rateMovie(this.parentNode.parentNode.id.split(MOVIE_ID_PREFIX)[1], this.value);
         });
+        m.append($('<div>').append(e));
+
         genre_string = ''
         mask = movie_info.genre.split('|')
         for (var i = 0; i < movie_info.genre.length && i < genres.length; ++i) {
@@ -194,10 +194,17 @@ $(function(){
             genre_string = genre_string.concat(genres[i]);
           }
         }
-        $('#' + MOVIE_ID_PREFIX + movie_info.movie_id).append(e).append(
-          $('<div>').text('Score: ' + movie.score)).append(
-          $('<div>').text('Rating: ' + movie_info.average_rating + ' / ' + movie_info.rating_count)).append(
-          $('<p>').text(genre_string));
+        m.append(
+          $('<div>').append(
+            $('<label>').text('Rating:')).append(
+            $('<span>').text(movie_info.average_rating.toFixed(1) + ' / ' + movie_info.rating_count))).append(
+          $('<div>').append(
+            $('<label>').text('Genre:')).append(
+            $('<span>').text(genre_string).attr('data-toggle', 'tooltip').attr('title', genre_string).addClass('hiding-text'))
+        );
+        if (typeof(movie.score) !== 'undefined') {
+          m.append($('<div>').append($('<label>').text('Score')).append($('<span>').text(movie.score.toFixed(2))).addClass('score'));
+        }
       }
     });
   }
