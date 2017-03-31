@@ -168,7 +168,13 @@ $(function(){
 
   function setupMovieItem(movie) {
     return $.ajax(backendHostUrl + '/movie/api/v1.0/info/' + movie.movie_id).then(function(movie_info){
-      $('#' + MOVIE_ID_PREFIX + movie_info.movie_id).append($('<a>').text(movie_info.title).attr('href', movie_info.imdb_url).attr('target', '_blank'))
+      a = $('<a>').attr('href', movie_info.imdb_url).attr('target', '_blank');
+      if (movie_info.imdb_poster_image_url) {
+        a.append($('<img>').attr('src', movie_info.imdb_poster_image_url));
+      } else {
+        a.text(movie_info.title)
+      }
+      $('#' + MOVIE_ID_PREFIX + movie_info.movie_id).append(a)
       if (userIdToken != null) {
         e = $('<select>').append($('<option>').text('None').val(0));
         for(var i = 1; i <=5; ++i)
