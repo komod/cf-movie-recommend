@@ -91,6 +91,8 @@ $(function(){
     });
   }
 
+  var ratings = {};
+
   function getRatedMovie() {
     $.ajax(backendHostUrl + '/movie/api/v1.0/ratings', {
       contentType: 'application/json',
@@ -98,8 +100,10 @@ $(function(){
         'Authorization': 'Bearer ' + userIdToken
       },
     }).then(function(data){
+      ratings = {}
       $('#rated-movies').empty();
       data.forEach(function(movie){
+        ratings[movie.movie_id] = movie.rating;
         $('<div>').attr('id', MOVIE_ID_PREFIX + movie.movie_id).appendTo($('#rated-movies'));
         setupMovieItem(movie);
       });
@@ -110,6 +114,13 @@ $(function(){
     if (isNaN(movie_id) || parseInt(movie_id) < 0)
       return;
     rating = parseInt(rating_str, 10);
+
+    var detached_element = null;
+    if (rating > 0 && typeof(ratings[movie_id]) === 'undefined') {
+      $('#rated-movies').append($('#' + MOVIE_ID_PREFIX + movie_id));
+    } else if (rating == 0) {
+      detached_element = $('#' + MOVIE_ID_PREFIX + movie_id).detach();
+    }
     $.ajax(backendHostUrl + '/movie/api/v1.0/ratings/' + movie_id, {
       type: 'PUT',
       contentType: 'application/json',
@@ -119,9 +130,25 @@ $(function(){
       data: JSON.stringify({
         'rating': rating
       })
-    }).then(function(data){
-      getRatedMovie();
+    }).then(function(data) {
+      if (data.rating > 0) {
+        ratings[data.movie_id] = data.rating
+      } else {
+        delete ratings[data.movie_id];
+        $('#' + MOVIE_ID_PREFIX + data.movie_id).remove();
+      }
       getMovieRecommendations();
+    }, function(data) {
+      console.log('rate movie failed');
+      if (ratings[movie_id] > 0) {
+        if (detached_element != null) {
+          $('#rated-movies').append(detached_element);
+          detached_element = null;
+        }
+        $('#' + MOVIE_ID_PREFIX + movie_id + ' select').val(ratings[movie_id]);
+      } else {
+        $('#' + MOVIE_ID_PREFIX + movie_id).remove();
+      }
     });
   }
 
