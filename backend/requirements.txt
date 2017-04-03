@@ -6,3 +6,4 @@ google-auth==0.8.0
 google-cloud-datastore
 requests==2.13.0
 scikit-learn[alldeps]==0.18.1
+beautifulsoup4==4.5.3

@@ -2,6 +2,8 @@ import logging
 import traceback
 import threading
 import time
+import datetime
+import requests
 
 # flask
 from flask import Flask, jsonify, request
@@ -16,6 +18,7 @@ import google.oauth2.id_token
 # data
 import numpy as np
 from sklearn.metrics.pairwise import pairwise_distances
+import bs4
 
 # local development
 # import pdb
@@ -23,6 +26,7 @@ from sklearn.metrics.pairwise import pairwise_distances
 
 RATING_KIND = 'Rating'
 MOVIE_KIND = 'Movie'
+POSTER_URL_NAME = 'imdb_poster_image_url'
 HTTP_REQUEST = google.auth.transport.requests.Request()
 
 app = Flask(__name__)
@@ -34,8 +38,10 @@ user_rating = None
 user_rating_split_size = 0
 movies_to_update = set()
 users_to_update = set()
+movie_info_to_update = set()
 rating_data_lock = threading.Lock()
 user_prediction = None
+modeling_time = datetime.datetime.utcnow().isoformat() + 'Z'
 movie_info = []
 all_user_info = {}
 
@@ -53,7 +59,8 @@ def recommend_movies():
     if user_info['index'] < 0:
         for m in general_recommendation:
             movie_list.append({
-                'movie_id': m[2]
+                'movie_id': m[2],
+                'score': m[0]
                 })        
             if len(movie_list) >= 20:
                 break
@@ -68,12 +75,20 @@ def recommend_movies():
         movies.sort(reverse=True)        
         for m in movies:
             movie_list.append({
-                'movie_id': m[1]
+                'movie_id': m[1],
+                'score': m[0]
                 })
             if len(movie_list) >= 20:
                 break
 
-    return jsonify({'movie_list': movie_list})
+    return jsonify({
+        'movie_list': movie_list,
+        'up_to_date_time': modeling_time
+        })
+
+@app.route('/movie/api/v1.0/recommendation/uptodate', methods=['GET'])
+def get_modeling_time():
+    return modeling_time
 
 @app.route('/movie/api/v1.0/ratings', methods=['GET'])
 def get_movie_rating():
@@ -120,12 +135,19 @@ def rate_movie(movie_id):
 @app.route('/movie/api/v1.0/info/<int:movie_id>', methods=['GET'])
 def get_movie_info(movie_id):
     info = movie_info[movie_id]
-    if info:
-      return jsonify({
+    if not info:
+        return
+    if POSTER_URL_NAME not in info:
+        info[POSTER_URL_NAME] = get_poster_url(movie_id)
+    return jsonify({
         'movie_id': movie_id,
         'title': info.get('title', ''),
-        'imdb_url': info.get('imdb_url', '')
-        })
+        'imdb_url': info.get('imdb_url', ''),
+        POSTER_URL_NAME: info.get(POSTER_URL_NAME, ''),
+        'genre': info.get('genre', ''),
+        'average_rating': movie_ratings[movie_id][0],
+        'rating_count': movie_ratings[movie_id][1]
+    })
 
 @app.errorhandler(500)
 def server_error(e):
@@ -194,9 +216,19 @@ def initialize():
     global general_recommendation
     general_recommendation = sorted(movie_ratings, reverse=True)
 
+    for i in xrange(20):
+        movie_id = general_recommendation[i][2]
+        movie_info[movie_id][POSTER_URL_NAME] = get_poster_url(movie_id)
+
     t = threading.Thread(target=daemon_task)
     t.setDaemon(True)
     t.start()
+
+def get_or_create_entity(key):
+    entity = retry_get_entity(key)
+    if entity is None:
+        entity = datastore.Entity(key=key)
+    return entity
 
 # Seeing simlimar issue as reported on github
 # https://github.com/GoogleCloudPlatform/google-cloud-python/issues/2896
@@ -271,6 +303,8 @@ def get_user_info():
                 log_info('exception caught, restore rating data to size = ' + str(user_rating.shape[0]))
             else:
                 predict_all()
+                global modeling_time
+                modeling_time = datetime.datetime.utcnow().isoformat() + 'Z'
     log_info('user ' + str(index) + ' : ' + email)
     return {
         'email': email,
@@ -292,6 +326,24 @@ def setup_rating_entity(user_index):
     rating_data_lock.release()
     return entity
 
+def get_poster_url(movie_id):
+    poster_url = ''
+    entity = retry_get_entity(client.key(MOVIE_KIND, str(movie_id)))
+    if entity is not None:
+        poster_url = entity.get(POSTER_URL_NAME, '')
+    else:
+        url = movie_info[movie_id].get('imdb_url', '')
+        resp = requests.get(url)
+        if resp.status_code == requests.codes.ok:
+            soup = bs4.BeautifulSoup(resp.content, 'html.parser')
+            ps = soup.find('div', attrs={'class': 'poster'})
+            if ps is not None:
+                poster_url = ps.img.get('src', '')
+            movie_info[movie_id][POSTER_URL_NAME] = poster_url
+            if poster_url:
+                movie_info_to_update.add(movie_id)
+    return poster_url
+
 def daemon_task():
     global new_ratings
     while True:
@@ -304,20 +356,37 @@ def daemon_task():
                 predict_all()
                 for i in update_list:
                     average_rating(i)
+                global modeling_time
+                modeling_time = datetime.datetime.utcnow().isoformat() + 'Z'
+   
+            entity_list = []
+
             rating_data_lock.acquire()
             update_list = sorted(users_to_update)
             users_to_update.clear()
             rating_data_lock.release()
             if update_list:
+                log_info('update user ' + str(update_list))
                 i = 0
-                entity_list = []
                 while i < len(update_list):
                     entity_list.append(setup_rating_entity(update_list[i]))
                     next_base = (update_list[i] / user_rating_split_size + 1) * user_rating_split_size
                     while i < len(update_list) and update_list[i] < next_base:
                         i += 1
+
+            update_list = sorted(movie_info_to_update)
+            movie_info_to_update.clear()
+            for i in update_list:
+                if POSTER_URL_NAME in movie_info[i]:
+                    entity = get_or_create_entity(client.key(MOVIE_KIND, str(i)))
+                    entity.update({
+                        POSTER_URL_NAME: movie_info[i][POSTER_URL_NAME]
+                    })
+                    entity_list.append(entity)
+
+            if entity_list:
                 client.put_multi(entity_list)
-                log_info(str(update_list) + ' synced to datastore');
+                log_info('synced to datastore');
         except Exception:
             log_info('exception caught')
             traceback.print_exc() 
