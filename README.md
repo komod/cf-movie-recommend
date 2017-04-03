@@ -10,9 +10,7 @@ The "default" service (frontend folder) renders a simple single page and interac
 
 TODO:
 
-- Automatically refresh recommendation list if model is modified by other users
 - Concurrent users handling
 - Frontend beautify and behavior refinement
-- Performance tuning
 - Adopt larger initial dataset
 
